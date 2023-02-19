@@ -2,26 +2,21 @@ import React from "react";
 import building from '../data/building.json';
 
 import PropTypes from 'prop-types';
-import {alpha} from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
-import Checkbox from '@mui/material/Checkbox';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
 import {visuallyHidden} from '@mui/utils';
+import SearchComponent from "@/components/SearchComponent";
+import Rating from '@mui/material/Rating';
 
+//Sorting routine
 function descendingComparator(a, b, orderBy) {
     if (b[orderBy] < a[orderBy]) {
         return -1;
@@ -41,7 +36,7 @@ function getComparator(order, orderBy) {
 function stableSort(array, comparator) {
     const stabilizedThis = array.map((el, index) => [el, index]);
     stabilizedThis.sort((a, b) => {
-        const order = comparator(a[0], b[0]);
+        const order = comparator(a[0], b[0])
         if (order !== 0) {
             return order;
         }
@@ -50,6 +45,7 @@ function stableSort(array, comparator) {
     return stabilizedThis.map((el) => el[0]);
 }
 
+//headers
 const headCells = [
     {
         id: 'street',
@@ -71,7 +67,7 @@ const headCells = [
     },
     {
         id: 'city',
-        numeric: false,
+        numeric: true,
         disablePadding: false,
         label: 'Stadt',
     },
@@ -83,7 +79,7 @@ const headCells = [
     },
     {
         id: 'owner',
-        numeric: false,
+        numeric: true,
         disablePadding: false,
         label: 'Eigentümer',
     },
@@ -99,14 +95,14 @@ const headCells = [
         label: 'Fläche',
     }, {
         id: 'buildingType',
-        numeric: false,
+        numeric: true,
         disablePadding: false,
         label: 'Gebäudeart',
     },
 ];
 
 function EnhancedTableHead(props) {
-    const {onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort} =
+    const {order, orderBy, onRequestSort} =
         props;
     const createSortHandler = (property) => (event) => {
         onRequestSort(event, property);
@@ -116,18 +112,11 @@ function EnhancedTableHead(props) {
         <TableHead>
             <TableRow>
                 <TableCell padding="checkbox">
-                    <Checkbox
-                        color="primary"
-                        indeterminate={numSelected > 0 && numSelected < rowCount}
-                        checked={rowCount > 0 && numSelected === rowCount}
-                        onChange={onSelectAllClick}
-                        inputProps={{
-                            'aria-label': 'select all desserts',
-                        }}
-                    />
+
                 </TableCell>
                 {headCells.map((headCell) => (
                     <TableCell
+                        sx={{color: "rgb(59,130,246)"}}
                         key={headCell.id}
                         align={headCell.numeric ? 'right' : 'left'}
                         padding={headCell.disablePadding ? 'none' : 'normal'}
@@ -153,208 +142,139 @@ function EnhancedTableHead(props) {
 }
 
 EnhancedTableHead.propTypes = {
-    numSelected: PropTypes.number.isRequired,
     onRequestSort: PropTypes.func.isRequired,
-    onSelectAllClick: PropTypes.func.isRequired,
     order: PropTypes.oneOf(['asc', 'desc']).isRequired,
     orderBy: PropTypes.string.isRequired,
     rowCount: PropTypes.number.isRequired,
 };
 
-function EnhancedTableToolbar(props) {
-    const {numSelected} = props;
+function EnhancedTableToolbar() {
 
     return (
-        <Toolbar
-            sx={{
-                pl: {sm: 2},
-                pr: {xs: 1, sm: 1},
-                ...(numSelected > 0 && {
-                    bgcolor: (theme) =>
-                        alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
-                }),
-            }}
-        >
-            {numSelected > 0 ? (
-                <Typography
-                    sx={{flex: '1 1 100%'}}
-                    color="inherit"
-                    variant="subtitle1"
-                    component="div"
-                >
-                    {numSelected} selected
-                </Typography>
-            ) : (
-                <Typography
-                    sx={{flex: '1 1 100%'}}
-                    variant="h6"
-                    id="tableTitle"
-                    component="div"
-                >
-                    Gebäude
-                </Typography>
-            )}
-
-
+        <Toolbar>
+            <Typography
+                sx={{flex: '1 1 100%', fontWeight: "bold", fontFamily: "Arial Black"}}
+                variant="h6"
+                id="tableTitle"
+                component="div"
+            >
+                Gebäudeübersicht
+            </Typography>
         </Toolbar>
     );
 }
 
-EnhancedTableToolbar.propTypes = {
-    numSelected: PropTypes.number.isRequired,
-};
-
 export default function DataTable() {
+    //hooks
     const [order, setOrder] = React.useState('asc');
     const [orderBy, setOrderBy] = React.useState('');
-    const [selected, setSelected] = React.useState([]);
-    const [page, setPage] = React.useState(0);
-    const [dense, setDense] = React.useState(false);
-    const [rowsPerPage, setRowsPerPage] = React.useState(5);
 
+    const [searchInput, setSearchInput] = React.useState('');
+
+    const [favorites, setFavorites] = React.useState([]);
+    const [favoriteMode, setFavoriteMode] = React.useState(false);
+
+    //sorting handler
     const handleRequestSort = (event, property) => {
         const isAsc = orderBy === property && order === 'asc';
         setOrder(isAsc ? 'desc' : 'asc');
         setOrderBy(property);
     };
 
-    const handleSelectAllClick = (event) => {
-        if (event.target.checked) {
-            const newSelected = building.map((n) => n.street);
-            setSelected(newSelected);
-            return;
+    //search filter list
+    const filteredResults = building.filter((b) => b.street.toLowerCase().includes(searchInput.toLowerCase()));
+
+    //favorite handlers
+    const handleShowFavorites = () => {
+        setFavoriteMode(!favoriteMode);
+    }
+
+    const handleFavoriteList = (entry) => {
+        if (!favorites.includes(entry)) {
+            setFavorites(favorites => [...favorites, entry]);
+        } else {
+            let index = favorites.indexOf(entry);
+            setFavorites([...favorites.slice(0, index), ...favorites.slice(index + 1)]);
         }
-        setSelected([]);
-    };
-
-    const handleClick = (event, name) => {
-        const selectedIndex = selected.indexOf(name);
-        let newSelected = [];
-
-        if (selectedIndex === -1) {
-            newSelected = newSelected.concat(selected, name);
-        } else if (selectedIndex === 0) {
-            newSelected = newSelected.concat(selected.slice(1));
-        } else if (selectedIndex === selected.length - 1) {
-            newSelected = newSelected.concat(selected.slice(0, -1));
-        } else if (selectedIndex > 0) {
-            newSelected = newSelected.concat(
-                selected.slice(0, selectedIndex),
-                selected.slice(selectedIndex + 1),
-            );
-        }
-
-        setSelected(newSelected);
-    };
-
-    const handleChangePage = (event, newPage) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    const handleChangeDense = (event) => {
-        setDense(event.target.checked);
-    };
-
-    const isSelected = (name) => selected.indexOf(name) !== -1;
-
-    // Avoid a layout jump when reaching the last page with empty rows.
-    const emptyRows =
-        page > 0 ? Math.max(0, (1 + page) * rowsPerPage - building.length) : 0;
+    }
 
     return (
-        <Box sx={{width: '100%'}}>
-            <Paper sx={{width: '100%', mb: 2}}>
-                <EnhancedTableToolbar numSelected={selected.length}/>
-                <TableContainer>
-                    <Table
-                        sx={{minWidth: 750}}
-                        aria-labelledby="tableTitle"
-                        size={dense ? 'small' : 'medium'}
-                    >
-                        <EnhancedTableHead
-                            numSelected={selected.length}
-                            order={order}
-                            orderBy={orderBy}
-                            onSelectAllClick={handleSelectAllClick}
-                            onRequestSort={handleRequestSort}
-                            rowCount={building.length}
-                        />
-                        <TableBody>
-                            {stableSort(building, getComparator(order, orderBy))
-                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                                .map((row, index) => {
-                                    const isItemSelected = isSelected(row.name);
-                                    const labelId = `enhanced-table-checkbox-${index}`;
+        <Box sx={{width: '100%', backgroundColor: "white"}}>
+            <EnhancedTableToolbar setSearchInput={setSearchInput}/>
+            <TableContainer>
+                <Table
+                    sx={{minWidth: 750}}
+                    aria-labelledby="tableTitle"
+                    size={'small'}
+                >
+                    <EnhancedTableHead
+                        order={order}
+                        orderBy={orderBy}
+                        onRequestSort={handleRequestSort}
+                        rowCount={building.length}
+                    />
+                    <TableBody>
+                        {stableSort(favoriteMode ? favorites : filteredResults, getComparator(order, orderBy))
+                            .map((row, index) => {
+                                const labelId = `enhanced-table-checkbox-${index}`;
 
-                                    return (
-                                        <TableRow
-                                            hover
-                                            onClick={(event) => handleClick(event, row.name)}
-                                            role="checkbox"
-                                            aria-checked={isItemSelected}
-                                            tabIndex={-1}
-                                            key={row.street}
-                                            selected={isItemSelected}
+                                return (
+                                    <TableRow
+                                        hover
+                                        tabIndex={-1}
+                                        key={row.street}
+                                    >
+                                        <TableCell>
+                                            <Rating name="favorite" defaultValue={0} max={1}
+                                                    onChange={() => handleFavoriteList(row)}
+                                            />
+                                        </TableCell>
+                                        <TableCell
+                                            component="th"
+                                            id={labelId}
+                                            scope="row"
+                                            padding="none"
                                         >
-                                            <TableCell padding="checkbox">
-                                                <Checkbox
-                                                    color="primary"
-                                                    checked={isItemSelected}
-                                                    inputProps={{
-                                                        'aria-labelledby': labelId,
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell
-                                                component="th"
-                                                id={labelId}
-                                                scope="row"
-                                                padding="none"
-                                            >
-                                                {row.street}
-                                            </TableCell>
-                                            <TableCell align="right">{row.streetNumber}</TableCell>
-                                            <TableCell align="right">{row.postal_code}</TableCell>
-                                            <TableCell align="right">{row.city}</TableCell>
-                                            <TableCell align="right">{row.emission}</TableCell>
-                                            <TableCell align="right">{row.owner}</TableCell>
-                                            <TableCell align="right">{row.yearConstruction}</TableCell>
-                                            <TableCell align="right">{row.netArea}</TableCell>
-                                            <TableCell align="right">{row.buildingType}</TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            {emptyRows > 0 && (
-                                <TableRow
-                                    style={{
-                                        height: (dense ? 33 : 53) * emptyRows,
-                                    }}
-                                >
-                                    <TableCell colSpan={6}/>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={building.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-            </Paper>
-            <FormControlLabel
-                control={<Switch checked={dense} onChange={handleChangeDense}/>}
-                label="Dense padding"
-            />
+                                            {row.street}
+                                        </TableCell>
+                                        <TableCell align="right">{row.streetNumber}</TableCell>
+                                        <TableCell align="right">{row.postal_code}</TableCell>
+                                        <TableCell align="right">{row.city}</TableCell>
+                                        <TableCell align="right">{row.emission}</TableCell>
+                                        <TableCell align="right">{row.owner}</TableCell>
+                                        <TableCell align="right">{row.yearConstruction}</TableCell>
+                                        <TableCell align="right">{row.netArea}</TableCell>
+                                        <TableCell align="right">{row.buildingType}</TableCell>
+                                    </TableRow>
+                                );
+                            })}
+
+
+                    </TableBody>
+                </Table>
+            </TableContainer>
+            <div style={{display: "flex", marginTop: "20px"}}>
+                <SearchComponent setSearchInput={setSearchInput} favoriteMode={favoriteMode}/>
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    width: "100%",
+                    justifyContent: "flex-end",
+                    marginRight: "10px"
+                }}>
+                    <button style={{
+                        border: "1px dotted",
+                        borderRadius: "15px",
+                        backgroundColor: "rgb(59,130,246)",
+                        color: "white",
+                        maxHeight: "30px",
+                        width: "200px",
+                        fontFamily: "Arial Black",
+                        cursor: "pointer",
+                    }} onClick={handleShowFavorites}>{favoriteMode ? "Alle zeigen" : "Nur Favoriten zeigen"}
+                    </button>
+                </div>
+            </div>
         </Box>
     );
 }

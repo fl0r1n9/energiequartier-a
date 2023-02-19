@@ -4,10 +4,10 @@ import Nav from "@/components/Nav";
 const Layout = ({children}) => {
 
     return (<React.Fragment>
-        <Nav/>
+            <Nav/>
             <div>{children}</div>
         </React.Fragment>
-        );
-        };
+    );
+};
 
-        export default Layout;
+export default Layout;

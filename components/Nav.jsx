@@ -1,13 +1,15 @@
 import Link from "next/link";
 
 export default function Nav() {
+    // top navigation bar
     return (<div style={{
             display: "flex",
             height: "68px",
             borderRadius: "20px",
             justifyContent: "center",
             backgroundColor: "white",
-            marginTop: "20px"
+            marginTop: "20px",
+            marginBottom: "20px"
         }}>
             <div style={{display: "flex", alignItems: "center", width: "100%"}}>
                 <div style={{display: "flex", alignItems: "flex-start", width: "100%", marginLeft: "10px"}}>
@@ -20,7 +22,8 @@ export default function Nav() {
                             height: "44px",
                             fontWeight: "bold",
                             width: "100px",
-                            fontFamily: "Arial Black"
+                            fontFamily: "Arial Black",
+                            cursor:"pointer"
                         }}>Home
                         </button>
                     </Link>
@@ -57,7 +60,8 @@ export default function Nav() {
                             height: "44px",
                             width: "100px",
                             fontWeight: "bold",
-                            fontFamily: "Arial Black"
+                            fontFamily: "Arial Black",
+                            cursor:"pointer"
                         }}>Editor
                         </button>
                     </Link>
